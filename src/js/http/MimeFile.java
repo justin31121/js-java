@@ -20,6 +20,8 @@ class MimeFile extends File {
 
         String type = fileName.substring(i, word.length);
         switch(type) {
+	case ".json":
+	    return "application/json";
         case ".html":
             return "text/html";
         case ".js":

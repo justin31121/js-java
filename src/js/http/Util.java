@@ -11,12 +11,15 @@ import java.util.concurrent.Callable;
 
 import org.json.JSONObject;
 
+import java.util.Map;
+import java.util.HashMap;
+
 public class Util {
 
     public static final <T> T notNull(Function<T> f) throws HttpException {
 	try{
 	    T t = f.produce();
-	    if(t==null) throw new HttpException("isNull", 400);;
+	    if(t==null) throw new HttpException("isNull", 400);
 	    return t;
 	}
 	catch(Exception ex) {
@@ -68,12 +71,51 @@ public class Util {
 	return new HttpResult(file, 200);
     }
 
+    public static final HttpResult notFound(final String mess) {
+	return new HttpResult(mess, 404);
+    }
+
     public static final HttpResult notFound() {
 	return new HttpResult("Not found", 404);
     }
 
     public static final HttpResult internalError() {
 	return new HttpResult("Internal Error", 500);
+    }
+
+    public static final Map<String, String> getParameters(final HttpExchange t) throws HttpException {
+	final String uri = t.getRequestURI().toString();
+	final Map<String, String> parameters = new HashMap<String, String>();
+	int p = uri.indexOf("?");
+	if(p != -1) {
+	    String[] pairs = uri.substring(p+1, uri.length()).split("&");
+	    for(int i=0;i<pairs.length;i++) {
+		String[] assignment = pairs[i].split("=");
+		if(assignment.length != 2) throw new HttpException("Malformed Parameters", 404);
+		parameters.put(assignment[0], assignment[1]);
+	    }
+	}
+
+	return parameters;
+    }
+
+    public static final String getParametersString(final HttpExchange t) {
+	final String uri = t.getRequestURI().toString();
+	int p = uri.indexOf("?");
+	if(p == -1) return "";
+	return uri.substring(p, uri.length());
+    }
+
+    public static final String getRoute(final HttpExchange t, final String prefix) {	
+	final String uri = t.getRequestURI().toString();
+	if(uri.indexOf(prefix) != 0) return null;
+	int len = prefix.length();
+	int p = uri.indexOf("?", prefix.length());
+	if(p == -1) {
+	    return uri.substring(len, uri.length());
+	}
+
+	return uri.substring(len, p);
     }
 
     public static final void respond(HttpExchange t, final HttpResult result) throws IOException {

@@ -10,6 +10,7 @@ import javax.net.ssl.SSLParameters;
 
 import com.sun.net.httpserver.HttpsServer;
 import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.HttpExchange;
 import java.net.InetSocketAddress;
 import com.sun.net.httpserver.HttpsConfigurator;
 import com.sun.net.httpserver.HttpsParameters;
@@ -64,8 +65,8 @@ public class Server {
 
     public int getThreads() {
 	return threads;
-    }
-    
+    }    
+
     public final void serve(final String context, final String path) {
 	httpHandlers.put(context, new FileHandler(path));
     }
@@ -85,20 +86,22 @@ public class Server {
     }
 
     private static final com.sun.net.httpserver.HttpHandler modify(final HttpHandler handler) {
-	return t -> {
-	    HttpResult result;
-	    try{
-		result = handler.handle(t);
+	return new com.sun.net.httpserver.HttpHandler() {
+	    public void handle(HttpExchange t) throws IOException {
+		HttpResult result;
+		try{
+		    result = handler.handle(t);
+		}
+		catch(HttpException e) {
+		    e.printStackTrace();
+		    result = e.toHttpResult();
+		}
+		catch(Exception ex) {
+		    ex.printStackTrace();
+		    result = internalError();
+		}
+		respond(t, result);		
 	    }
-	    catch(HttpException e) {
-		e.printStackTrace();
-		result = e.toHttpResult();
-	    }
-	    catch(Exception ex) {
-		ex.printStackTrace();
-		result = internalError();
-	    }
-	    respond(t, result);
 	};
     }
     

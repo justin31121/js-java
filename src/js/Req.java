@@ -31,6 +31,7 @@ import javax.net.ssl.X509ExtendedTrustManager;
 
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 /**
  * @author jschartner
@@ -52,8 +53,7 @@ public class Req
     
     private int responseCode;
     private String responseMessage;
-    private
-	Map<String, List<String>> responseHeaders;
+    private Map<String, List<String>> responseHeaders;
 
     private Map<String, String> requestHeaders;
 
@@ -62,8 +62,8 @@ public class Req
 	responseCode = -1;
 	responseMessage = null;
 	basicAuth = null;
-	requestHeaders = null;
 	HttpsURLConnection.setFollowRedirects(false);
+	requestHeaders = null;
     }
     
     public Req(boolean logging) {
@@ -71,18 +71,18 @@ public class Req
 	responseCode = -1;
 	responseMessage = null;
 	basicAuth = null;
-	requestHeaders = null;
 	HttpsURLConnection.setFollowRedirects(false);
+	requestHeaders = null;
     }
     
     public Req(String basicAuth) {
 	logging = false;
 	responseCode = -1;
 	responseMessage = null;
-	final byte[] encodedAuth = Base64.getEncoder().encode(basicAuth.getBytes(StandardCharsets.UTF_8));	
+	final byte[] encodedAuth = Base64.getEncoder().encode(basicAuth.getBytes(StandardCharsets.UTF_8));
 	this.basicAuth = "Basic " + new String(encodedAuth);
-	requestHeaders = null;
 	HttpsURLConnection.setFollowRedirects(false);
+	requestHeaders = null;
     }
 
     public Req(String basicAuth, boolean logging) {
@@ -91,8 +91,8 @@ public class Req
 	responseMessage = null;
 	final byte[] encodedAuth = Base64.getEncoder().encode(basicAuth.getBytes(StandardCharsets.UTF_8));
 	this.basicAuth = "Basic " + new String(encodedAuth);
-	requestHeaders = null;
 	HttpsURLConnection.setFollowRedirects(false);
+	requestHeaders = null;
     }
 
     public boolean failed() {
@@ -107,18 +107,6 @@ public class Req
     public String getResMessage()
     {
 	return responseMessage;
-    }
-
-    public Map<String, String> getReqHeaders() {
-	return requestHeaders;
-    }
-
-    public void setReqHeaders(Map<String, String> headers) {
-	this.requestHeaders = headers;
-    }
-    
-    public void resetReqHeaders() {
-	this.requestHeaders = null;
     }
 
     public Map<String, List<String>> getResHeaders() {
@@ -176,7 +164,31 @@ public class Req
     public Req resetApiKey() {
 	apiKey = null;
 	return this;
-    }    
+    }
+
+    public Req addRequestHeader(String key, String value) {
+	if(requestHeaders == null) {
+	    requestHeaders = new HashMap<String, String>();
+	}
+	requestHeaders.put(key, value);
+	return this;
+    }
+
+    public Req clearRequestHeader(String key) {
+	if(requestHeaders == null) return this;
+	requestHeaders.remove(key);
+	if(requestHeaders.size() == 0) requestHeaders = null;
+	return this;
+    }
+
+    public Req clearRequestHeaders() {
+	requestHeaders = null;
+	return this;
+    }
+
+    public Map<String, String> getRequestHeaders() {
+	return requestHeaders;
+    }
 
     public byte[] requestBytes(final String urlString, final String method)
 	throws MalformedURLException, ProtocolException, IOException, UnsupportedEncodingException
@@ -277,6 +289,23 @@ public class Req
 	return responseOutput(con);
     }
 
+    private static final String toParametersString(final Map<String, String> parameters) {
+	if(parameters == null) return "";
+	if(parameters.size() == 0) return "";
+	final StringBuilder builder = new StringBuilder("?");
+	int count = 0;
+	for(Map.Entry<String, String> entry : parameters.entrySet()) {
+	    builder.append(entry.getKey())
+		.append("=")
+		.append(entry.getValue());
+	    if(count != parameters.size() - 1) {
+		builder.append("&");
+	    }
+	    count++;
+	}
+	return builder.toString();
+    }
+
     private String responseOutput(HttpURLConnection con) throws UnsupportedEncodingException, IOException {
 	con.connect();
 
@@ -367,18 +396,20 @@ public class Req
 		client = (HttpURLConnection) new URL(url.replace(" ", "%20")).openConnection();
 	    }
 
-	if(requestHeaders!=null) {
-	    for(Map.Entry<String, String> header : requestHeaders.entrySet()) {
-		client.setRequestProperty(header.getKey(), header.getValue());
-	    }
-	}
-
 	client.setRequestProperty("User-Agent",
 				  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36");
+
+	//client.setRequestProperty("User-Agent", "PostmanRuntime/7.29.2");
 
 	client.setRequestProperty("Connection", "Keep-Alive");
 	client.setUseCaches(true);
 	client.setRequestMethod(method);
+
+	if(requestHeaders != null) {
+	    for(Map.Entry<String, String> entry : requestHeaders.entrySet()) {
+		client.setRequestProperty(entry.getKey(), entry.getValue());
+	    }
+	}
 
 	//clientTENT TYPE
 	if (contentType != null && contentType.length() > 0)

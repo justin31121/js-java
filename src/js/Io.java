@@ -12,6 +12,11 @@ import java.util.ArrayList;
 
 public class Io {
 
+    public static void FAIL(final String message) {
+	println(message);
+	exit(1);
+    }
+
     public static void exit(int exitCode) {
 	System.exit(exitCode);
     }
@@ -94,6 +99,20 @@ public class Io {
 	};
 
 	return forEachLine(path, f, builder).toString();
+    }
+
+    public static String concat(Object ...os) {
+	return join("", os);
+    }
+
+    public static String join(String delimiter, Object ...os) {
+	if(os.length == 1) return String.valueOf(os[0]);
+	StringBuilder builder = new StringBuilder(String.valueOf(os[0]));
+	for(int i=1;i<os.length;i++) {
+	    builder.append(delimiter)
+		.append(String.valueOf(os[i]));
+	}
+	return builder.toString();
     }
 
     /*

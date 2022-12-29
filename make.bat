@@ -4,3 +4,5 @@ javac -Werror -cp ".\libs\*" ^
 .\src\js\*.java ^
 .\src\tests\*.java ^
 -d .
+
+

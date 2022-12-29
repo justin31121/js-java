@@ -17,6 +17,13 @@ public class Io {
 	exit(1);
     }
 
+    public static String repeat(int n, Object o) {
+	if(n<1) return "";
+	StringBuilder builder = new StringBuilder();
+	for(int i=0;i<n;i++) builder.append(String.valueOf(o));
+	return builder.toString();
+    }
+
     public static void exit(int exitCode) {
 	System.exit(exitCode);
     }
@@ -57,6 +64,14 @@ public class Io {
 
     public static void println(Object o) {	
 	print(o);
+	print("\n");
+    }
+
+    public static void println(Object ...os) {
+	for(int i=0;i<os.length;i++) {
+	    print(os[i]);
+	    print(' ');
+	}
 	print("\n");
     }
 

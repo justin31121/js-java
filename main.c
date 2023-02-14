@@ -5,8 +5,8 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
 
-#define WIDTH 200
-#define HEIGHT 200
+#define WIDTH 400
+#define HEIGHT 400
 
 typedef unsigned long u64;
 typedef long s64;
@@ -131,8 +131,8 @@ bool font_init(Font *font, const char *font_path, u32 font_height) {
 	u32 glyph_off = font_height * (c - 32);
 	
 	int w, h, x, y;
-	unsigned char *bitmap =
-	    stbtt_GetCodepointSDF(&font_info, scale, c,  0, 128, 256.0, &w, &h, &x, &y);
+	u8 *bitmap =
+	    stbtt_GetCodepointSDF(&font_info, scale, c,  0, 128, 255.0, &w, &h, &x, &y);
 	    //stbtt_GetCodepointBitmap(&font_info, 0, scale, c, &w, &h, &x, &y);
 
 	font->ascii_w[c-32] = w;
@@ -158,6 +158,16 @@ bool font_init(Font *font, const char *font_path, u32 font_height) {
     return true;
 }
 
+u32 font_estimate_len(const Font *font, const char* cstr) {
+    u32 x0 = 0;    
+    while(*cstr) {
+	char c = (*cstr++);
+	if(c == ' ') x0 += font->height / 4;
+	else x0 += font->ascii_w[c - 32] + font->ascii_x[c - 32];
+    }
+    return x0;
+}
+
 void font_free(Font *font) {
     if(!font) {
 	return;
@@ -170,35 +180,95 @@ void font_free(Font *font) {
     free(font->ascii_h);
 }
 
+static inline u32 rgba_mix(u32 color, u32 base) {
+    u8 color_alpha = (0xff000000 & color) >> 24;
+
+    u8 base_red = 0xff & base;
+    u8 red = color_alpha * ((0xff & color) - base_red) / 0xff + base_red;
+
+    u8 base_green = (0xff00 & base) >> 8;
+    u8 green = color_alpha * (((0xff00 & color) >> 8) - base_green) / 0xff + base_green;
+		
+    u8 base_blue = (0xff0000 & base) >> 16;
+    u8 blue = color_alpha * (((0xff0000 & color) >> 16) - base_blue) / 0xff + base_blue;
+
+    return (color_alpha << 24) | (blue << 16) | (green << 8) | (red);
+}
+
+void rect(u32 *data, u32 width, u32 height, u32 x0, u32 y0, u32 w, u32 h, u32 color) {
+    for(u32 dy=0;dy<h;dy++) {
+	for(u32 dx=0;dx<w;dx++) {
+	    u32 x = dx + x0;
+	    u32 y = dy + y0;
+	    if(y>=height || x>=width) continue;	    
+	   		
+	    data[y*width+x] = rgba_mix(color, data[y*width+x]);
+	}
+    }
+}
+
+void font_render(const Font *font, const char* cstr, u32 *pixels, u32 width, u32 height,
+		 u32 x0, u32 y0, u32 color, bool wrap) {
+
+    u32 h = font->height;
+    color &= 0x00ffffff;
+    
+    int i = 0;
+    while(cstr[i]) {
+	char c = cstr[i];
+	if(c == ' ' ) {
+	    x0 += font->height / 4;
+	    i++;
+	    continue;
+	}
+	
+	u32 glyph_off = (c - 32) * font->height;
+
+	u32 w = font->ascii_w[c - 32] * h / font->height;
+    
+	for(u32 dy=0;dy<h;dy++) {
+	    for(u32 dx=0;dx<w;dx++) {
+		s32 x = (s32) x0 + (s32) + dx + font->ascii_x[c - 32];
+		s32 y = (s32) y0 + (s32) + dy + (font->ascii_y[c - 32] * (s32) h / (s32) font->height);
+
+		if(wrap) {
+		    x %= (s32) width;
+		    y %= (s32) height;
+		}
+		if(x<0 || x>=(s32) width || y<0 || y>=(s32) height) continue;
+
+		u32 sx = dx * font->ascii_w[c-32]/ w;
+		u32 sy = dy * font->height/ h;
+	    
+		u8 d = font->ascii[sy*font->ascii_width+glyph_off+sx];
+		if(!d) continue;		
+		pixels[y*WIDTH+x] = rgba_mix(0x00000000 | (d << 24) | color, pixels[y*WIDTH+x]);
+	    }
+	}
+	x0 += w + font->ascii_x[c - 32];
+	i++;
+    }
+}
+
+static u32 padding = 0;
+
 void render(u32 *data, const Font *font) {
     for(u32 y=0;y<HEIGHT;y++) {
 	for(u32 x=0;x<WIDTH;x++) {
-	    data[y*WIDTH + x] = 0xff202020;
+	    data[y*WIDTH + x] = 0xff181818;
 	}
     }
 
-    u32 y0 = font->height;
-    u32 x0 = 0;
+    rect(data, WIDTH, HEIGHT, WIDTH/2 - 50 + 25, HEIGHT / 2 - 50 + 25, 100, 100, 0x5533ddff);
+    rect(data, WIDTH, HEIGHT, WIDTH/2 - 100 + 25, HEIGHT / 2 - 100 + 25, 100, 100, 0x55ffdd33);
+    
+    const char *cstr = "playas circle - reezy.m4a";
+    u32 width = font_estimate_len(font, cstr);
 
-    const char *cstr = "yoyoyo";
-    int i=0;
-    while(cstr[i]) {
-	char c = cstr[i];
-	u32 glyph_off = (c - 32) * font->height;
-	for(u32 dy=0;dy<font->height;dy++) {
-	    for(u32 dx=0;dx<font->height;dx++) {
-		s32 x = (s32) x0 + (s32) dx + font->ascii_x[c -32];
-		s32 y = (s32) y0 + (s32) dy + font->ascii_y[c-32];
-		if(x<0 || x>=WIDTH || y<0 || y>=HEIGHT) continue;
-		u8 d = font->ascii[dy*font->ascii_width+glyph_off+dx];
-		if(!d) continue;
-		d = d * (0xff - 0x20) / 255 + 0x20;
-		data[y*WIDTH+x] = 0xff000000 | (d << 16) | (d << 8) | (d);
-	    }
-	}
-	x0 += font->ascii_w[c - 32] + font->ascii_x[c - 32];
-	i++;
-    }    
+    font_render(font, cstr, data, WIDTH, HEIGHT, WIDTH / 2 - width / 2 + padding, HEIGHT - font->height * 3 + font->height / 2,
+		0xffeeeeee, true);
+
+    padding = (padding + 1) % WIDTH;
 }
 
 int main(int argc, char **argv) {
@@ -206,7 +276,7 @@ int main(int argc, char **argv) {
     (void) argv;
 
     Font font;
-    if(!font_init(&font, "c:/windows/fonts/arialbd.ttf", 64)) {
+    if(!font_init(&font, "c:/windows/fonts/72-Regular.ttf", 20)) {
 	fprintf(stderr, "ERROR: Can not load font\n");
 	exit(1);
     }
@@ -239,21 +309,24 @@ int main(int argc, char **argv) {
 
     bool quit = false;
     SDL_Rect window_rect = {0, 0, WIDTH, HEIGHT};
-
+   
     SDL_Event event;
     while(!quit) {
-	SDL_WaitEvent(&event);
-
-	switch(event.type) {
-	case SDL_QUIT: {
-	    quit = true;
-	} break;
-	case SDL_KEYDOWN: {
-	    if(event.key.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_q) {
+	u32 begin = SDL_GetTicks();
+	
+	while(SDL_PollEvent(&event)) {	
+	    switch(event.type) {
+	    case SDL_QUIT: {
 		quit = true;
+	    } break;
+	    case SDL_KEYDOWN: {
+		if(event.key.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_q) {
+		    quit = true;
+		}
+	    } break;
 	    }
-	} break;
 	}
+
 
 	void *texture_data = NULL;
 	int texture_pitch = 0;
@@ -276,8 +349,11 @@ int main(int argc, char **argv) {
 	    exit(1);	    
 	}
 	SDL_RenderPresent(renderer);
+
+	SDL_Delay(17);
     }
-    
+
+    //font_free(font);
     //SDL_DestroyTexture(texture);
     //SDL_DestroyRenderer(renderer);
     //SDL_DestroyWindow(window);
@@ -285,3 +361,4 @@ int main(int argc, char **argv) {
     
     return 0;
 }
+

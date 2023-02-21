@@ -26,7 +26,7 @@ public class Io {
 
     public static void exit(int exitCode) {
 	System.exit(exitCode);
-    }
+    }    
 
     //PRINT
     public static void print(Object o) {
@@ -127,6 +127,24 @@ public class Io {
 	    builder.append(delimiter)
 		.append(String.valueOf(os[i]));
 	}
+	return builder.toString();
+    }
+
+    public static void writeFile(final String filePath, final String content) throws IOException {
+	final BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
+	writer.write(content);
+	writer.close();
+    }
+
+    public static String slurpFile(final String filePath) throws IOException {
+	final StringBuilder builder = new StringBuilder();
+	final BufferedReader reader = new BufferedReader(new FileReader(filePath));
+	String line;
+	while((line = reader.readLine()) != null) {
+	    builder.append(line)
+		.append('\n');
+	}
+	reader.close();
 	return builder.toString();
     }
 

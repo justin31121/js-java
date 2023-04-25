@@ -5,10 +5,19 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 
 import java.util.List;
 import java.util.ArrayList;
+
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipEntry;
 
 public class Io {
 
@@ -26,7 +35,22 @@ public class Io {
 
     public static void exit(int exitCode) {
 	System.exit(exitCode);
-    }    
+    }
+
+    
+    public static void _assert(boolean condition, Object message) {
+	if(!condition) {
+	    if(message != null) {
+		throw new RuntimeException(String.valueOf(message));
+	    } else {
+		throw new RuntimeException();
+	    }
+	}
+    }
+
+    public static void _assert(boolean condition) {
+	_assert(condition, null);
+    }
 
     //PRINT
     public static void print(Object o) {
@@ -73,6 +97,37 @@ public class Io {
 	    print(' ');
 	}
 	print("\n");
+    }
+
+    //ZIP
+    public static class Blob {
+	public final byte[] data;
+	public final String name;
+
+	public Blob(byte[] data, String name) {
+	    this.data = data;
+	    this.name = name;
+	}
+
+	public Blob(byte[] data) {
+	    this.data = data;
+	    this.name = null;
+	}
+    }
+
+    public static List<Blob> unzip(byte[] zippedBytes) throws IOException {
+	List<Blob> blobs = new ArrayList<>();
+
+	ZipInputStream zipStream = new ZipInputStream(new ByteArrayInputStream(zippedBytes));
+	ZipEntry zipEntry = null;
+	while((zipEntry = zipStream.getNextEntry()) != null) {
+	    if(!zipEntry.isDirectory()) {
+		blobs.add(new Blob(toBytes(zipStream, false), zipEntry.getName()));
+	    }
+	}
+	zipStream.close();
+
+	return blobs;
     }
 
     //READ FILE
@@ -130,22 +185,70 @@ public class Io {
 	return builder.toString();
     }
 
+    public static byte[] toBytes(InputStream is, boolean close) throws IOException {
+	ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+	int n;
+	byte[] buffer = new byte[4096];
+	while((n = is.read(buffer, 0, buffer.length)) != -1) {
+	    baos.write(buffer, 0, n);
+	}
+	baos.flush();
+	byte[] data = baos.toByteArray();
+	baos.close();
+	if(close) is.close();
+	return data;
+    }
+
+    public static byte[] toBytes(InputStream is) throws IOException {
+	return toBytes(is, true);
+    }
+
+    public static byte[] toBytes(OutputStream os, boolean close) throws IOException {
+	ByteArrayOutputStream baos = new ByteArrayOutputStream();
+	baos.writeTo(os);
+	byte[] data = baos.toByteArray();
+	baos.close();
+	if(close) os.close();
+	return data;
+    }
+
+    public static byte[] toBytes(OutputStream os) throws IOException {
+	return toBytes(os, true);
+    }
+
     public static void writeFile(final String filePath, final String content) throws IOException {
+
+	String[] parts = filePath.split("/");
+	
+	StringBuilder builder = new StringBuilder();
+	for(int i=0;i<parts.length-1;i++) builder.append(parts[i]).append("/");
+	new File(builder.toString()).mkdirs();
+	
 	final BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
 	writer.write(content);
 	writer.close();
     }
 
-    public static String slurpFile(final String filePath) throws IOException {
-	final StringBuilder builder = new StringBuilder();
-	final BufferedReader reader = new BufferedReader(new FileReader(filePath));
-	String line;
-	while((line = reader.readLine()) != null) {
-	    builder.append(line)
-		.append('\n');
-	}
-	reader.close();
-	return builder.toString();
+    public static void writeFile(final String filePath, final byte[] bytes) throws IOException {
+	String[] parts = filePath.split("/");
+	
+	StringBuilder builder = new StringBuilder();
+	for(int i=0;i<parts.length-1;i++) builder.append(parts[i]).append("/");
+	new File(builder.toString()).mkdirs();
+	
+	FileOutputStream outputStream = new FileOutputStream(new File(filePath));
+	outputStream.write(bytes);
+	outputStream.close();
+    }
+
+    public static byte[] slurpFile(final String filePath) throws IOException {
+	File file = new File(filePath);
+	byte[] bytes = new byte[(int) file.length()];
+	FileInputStream inputStream = new FileInputStream(file);
+	inputStream.read(bytes);
+	inputStream.close();
+	return bytes;
     }
 
     /*

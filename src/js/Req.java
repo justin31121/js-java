@@ -10,6 +10,27 @@ import java.util.List;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
+import java.util.Base64;
+
+import java.net.Socket;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedTrustManager;
+
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 import java.io.*;
 
 public class Req {
@@ -54,11 +75,17 @@ public class Req {
 	    } else {
 		in = new BufferedInputStream(connection.getErrorStream());
 	    }
-	    byte[] buf = new byte[8192];
-	    int n = 0;
-	    while(-1!=(n=in.read(buf))) {
-		out.write(buf, 0, n);
+	    
+	    try{
+		byte[] buf = new byte[8192];
+		int n = 0;
+		while(-1!=(n=in.read(buf))) {
+		    out.write(buf, 0, n);
+		}
+	    } catch(IOException e) {
+		
 	    }
+
 	    out.close();
 	    in.close();
 	    connection.disconnect();
@@ -72,6 +99,8 @@ public class Req {
     public static class Builder {
 	private final HttpURLConnection connection;
 	private byte[] bytes;
+	private String fileName;
+	private String attachmentName;
 	
 	Builder(final HttpURLConnection connection) {
 	    this.connection = connection;
@@ -89,6 +118,18 @@ public class Req {
 	public Builder body(final byte[] bytes) {
 	    if(bytes == null) return null;
 	    this.bytes = bytes;
+	    this.fileName = null;
+	    this.attachmentName = null;
+	    return this;
+	}
+
+	public Builder formData(final byte[] bytes, final String fileName, final String attachmentName) {
+	    if(bytes == null) return null;
+	    if(fileName == null) return null;
+	    if(attachmentName == null) return null;
+	    this.bytes = bytes;
+	    this.fileName = fileName;
+	    this.attachmentName = attachmentName;
 	    return this;
 	}
 
@@ -113,11 +154,25 @@ public class Req {
 	{
 	    if(connection == null) return null;
 	    if(bytes != null) {
-		connection.setDoOutput(true);
-		final DataOutputStream dos = new DataOutputStream(connection.getOutputStream());
-		dos.write(bytes);
-		dos.flush();
-		dos.close();
+		if(fileName != null && attachmentName != null) {
+		    connection.setRequestProperty("Content-Type", FORM_DATA_CONTENT_TYPE);
+		    connection.setDoOutput(true);
+		    final DataOutputStream dos = new DataOutputStream(connection.getOutputStream());
+		    dos.writeBytes(Io.concat(FORM_DATA_TWO_HYPHENS, FORM_DATA_BOUNDARY, FORM_DATA_CRLF));
+		    dos.writeBytes(Io.concat("Content-Disposition: form-data; name=\"", attachmentName, "\";filename=\"", fileName, "\"", FORM_DATA_CRLF));
+		    dos.writeBytes(FORM_DATA_CRLF);
+		    dos.write(bytes);
+		    dos.writeBytes(FORM_DATA_CRLF);
+		    dos.writeBytes(Io.concat(FORM_DATA_TWO_HYPHENS, FORM_DATA_BOUNDARY, FORM_DATA_TWO_HYPHENS, FORM_DATA_CRLF));
+		    dos.flush();
+		    dos.close();
+		} else {
+		    connection.setDoOutput(true);
+		    final DataOutputStream dos = new DataOutputStream(connection.getOutputStream());
+		    dos.write(bytes);
+		    dos.flush();
+		    dos.close();
+		}
 	    }
 	    return Result.from(connection);
 	}
@@ -198,6 +253,11 @@ public class Req {
 	return new String(data, StandardCharsets.UTF_8);
     }
 
+    public static final byte[] utf8(final String data) {
+	if(data == null) return null;
+	return data.getBytes(StandardCharsets.UTF_8);
+    }
+
     public static final String decode(final String string) {
 	if(string == null) return null;
 	String result = null;
@@ -244,5 +304,73 @@ public class Req {
 	connection.setRequestMethod(method);
 
 	return connection;
+    }
+
+    public static void allowMethods(String... methods) {
+        try {
+            Field methodsField = HttpURLConnection.class.getDeclaredField("methods");
+
+            Field modifiersField = Field.class.getDeclaredField("modifiers");
+            modifiersField.setAccessible(true);
+            modifiersField.setInt(methodsField, methodsField.getModifiers() & ~Modifier.FINAL);
+
+            methodsField.setAccessible(true);
+
+            String[] oldMethods = (String[]) methodsField.get(null);
+            Set<String> methodsSet = new LinkedHashSet<>(Arrays.asList(oldMethods));
+            methodsSet.addAll(Arrays.asList(methods));
+            String[] newMethods = methodsSet.toArray(new String[0]);
+
+            methodsField.set(null/*static field*/, newMethods);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    public static void disableSSL () {
+	TrustManager [] trustAllCerts = new TrustManager [] {new X509ExtendedTrustManager () {
+		@Override
+		public void checkClientTrusted (X509Certificate [] chain, String authType, Socket socket) {
+
+		}
+
+		@Override
+		public void checkServerTrusted (X509Certificate [] chain, String authType, Socket socket) {
+
+		}
+
+		@Override
+		public void checkClientTrusted (X509Certificate [] chain, String authType, SSLEngine engine) {
+
+		}
+
+		@Override
+		public void checkServerTrusted (X509Certificate [] chain, String authType, SSLEngine engine) {
+
+		}
+
+		@Override
+		public java.security.cert.X509Certificate [] getAcceptedIssuers () {
+		    return null;
+		}
+
+		@Override
+		public void checkClientTrusted (X509Certificate [] certs, String authType) {
+		}
+
+		@Override
+		public void checkServerTrusted (X509Certificate [] certs, String authType) {
+		}
+
+	    }};
+
+	SSLContext sc = null;
+	try {
+	    sc = SSLContext.getInstance ("SSL");
+	    sc.init (null, trustAllCerts, new java.security.SecureRandom ());
+	} catch (Exception e) {
+	    e.printStackTrace ();
+	}
+	HttpsURLConnection.setDefaultSSLSocketFactory (sc.getSocketFactory());
     }
 }

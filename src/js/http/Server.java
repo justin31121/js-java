@@ -135,7 +135,7 @@ public class Server {
 	}
 	httpHandlers = null;
 
-	server.setExecutor(Executors.newFixedThreadPool(2));
+	server.setExecutor(Executors.newFixedThreadPool(threads));
 	server.start();
 
 	running = true;

@@ -1,41 +1,51 @@
 package js.http;
 
-import java.io.File;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.io.ByteArrayInputStream;
 
 public class HttpResult {
 
-    private final String content;
-    private final File file;
+    private final InputStream inputStream;
+    private final byte[] bytes;
     private final int code;
+
+    public HttpResult(final int code) {
+	this.inputStream = null;
+	this.bytes = null;
+	this.code = code;
+    }
+
+    public HttpResult(final String string, final int code) {
+	this(string.getBytes(StandardCharsets.UTF_8), code);
+    }
     
-    public HttpResult(final Object message, final int code) {
-	this.content = message.toString();
-	this.file = null;
+    public HttpResult(final byte[] bytes, final int code) {
+	this.inputStream = null;
+	this.bytes = bytes;
 	this.code = code;
     }
 
-    public HttpResult(final File file, final int code) {
-	this.content = null;
-	this.file = file;
+    public HttpResult(final InputStream inputStream, final int code) {
+	this.inputStream = inputStream;
+	this.bytes = null;
 	this.code = code;
     }
 
-    public boolean isFile() {
-	return file!=null;
+    public boolean hasInputStream() {
+	return inputStream != null;
     }
 
-    public boolean isContent() {
-	return content!=null;
+    public boolean hasBytes() {
+	return bytes != null;
     }
 
-    public String getContent() {
-	if(isFile()) throw new RuntimeException("Can not get content, when HttpResult contains a file");
-	return content;
+    public InputStream getInputStream() {
+	return inputStream;
     }
 
-    public File getFile() {
-	if(isContent()) throw new RuntimeException("Can not get file, when HttpResult contains a content");
-	return file;
+    public byte[] getBytes() {
+	return bytes;
     }
 
     public int getCode() {

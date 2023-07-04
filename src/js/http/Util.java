@@ -5,9 +5,11 @@ import java.io.OutputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.concurrent.Callable;
+import java.nio.charset.StandardCharsets;
 
 import org.json.JSONObject;
 
@@ -56,19 +58,19 @@ public class Util {
     }
 
     public static final HttpResult ok() {
-	return new HttpResult("", 200);
+	return new HttpResult(200);
     }
 
-    public static final HttpResult ok(final Object message) {
+    public static final HttpResult ok(final String message) {
 	return new HttpResult(message, 200);
-    }
+    }    
 
     public static final HttpResult ok(final JSONObject json) {
 	return new HttpResult(json.toString().replace("\"NULL\"", "null"), 200);
     }
 
-    public static final HttpResult ok(final File file) {
-	return new HttpResult(file, 200);
+    public static final HttpResult ok(final InputStream inputStream) {
+	return new HttpResult(inputStream, 200);
     }
 
     public static final HttpResult notFound(final String mess) {
@@ -119,33 +121,32 @@ public class Util {
     }
 
     public static final void respond(HttpExchange t, final HttpResult result) throws IOException {
-	if(result.isContent()) respond(t, result.getContent(), result.getCode());
-	else respond(t, result.getFile(), result.getCode());
-    }
+	OutputStream outputStream = t.getResponseBody();
+	int rCode = result.getCode();
+	
+	if(result.hasInputStream()) {
+	    InputStream inputStream = result.getInputStream();
 
-    public static final void respond(HttpExchange t, String message, int rCode) throws IOException {
-        OutputStream os = t.getResponseBody();
-        if(message==null) {
-            message = "null";
-        }
-        byte[] bytes = message.getBytes("UTF-8");
-        t.sendResponseHeaders(rCode, bytes.length);
-        os.write(bytes);
-        os.close();
-    }
+	    t.sendResponseHeaders(rCode, 0);
+	    byte[] bytes = new byte[0x10000];
+	    int count = 0;
+	    while((count = inputStream.read(bytes)) >= 0) {
+		outputStream.write(bytes, 0, count);
+	    }
+	    outputStream.flush();
+	    
+	    inputStream.close();
+	} else if(result.hasBytes()) {
+	    byte[] bytes = result.getBytes();
+	    
+	    t.sendResponseHeaders(rCode, bytes.length);
+	    outputStream.write(bytes);	    
+	} else {
+	    
+	    t.sendResponseHeaders(rCode, -1);
+	}
 
-    public static final void respond(HttpExchange t, File file, int rCode) throws IOException {
-        t.sendResponseHeaders(200, 0);
-        OutputStream output = t.getResponseBody();
-        FileInputStream fs = new FileInputStream(file);
-        byte[] bytes = new byte[0x10000];
-        int count = 0;
-        while((count = fs.read(bytes)) >= 0) {
-            output.write(bytes, 0, count);
-        }
-
-        output.flush();
-        output.close();
-        fs.close();
+	outputStream.close();
     }
+    
 }

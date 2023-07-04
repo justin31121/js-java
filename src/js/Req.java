@@ -14,6 +14,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.ArrayList;
 
 import java.net.Socket;
 import javax.net.ssl.HttpsURLConnection;
@@ -50,6 +51,7 @@ public class Req {
 	public final byte[] data;
 	public final long len;
 	public final Map<String, List<String>> headers;
+	public final InputStream inputStream;
 
 	private Result(final int responseCode, final boolean ok,
 		       final byte[] data, final long len,
@@ -57,8 +59,20 @@ public class Req {
 	    this.responseCode = responseCode;
 	    this.ok = ok;
 	    this.data = data;
+	    this.inputStream = null;
 	    this.len = len;
 	    this.headers = headers;
+	}
+
+	private Result(final int responseCode, final boolean ok,
+		       final InputStream inputStream, final long len,
+		       final Map<String, List<String>> headers) {
+	    this.responseCode = responseCode;
+	    this.ok = ok;
+	    this.data = null;
+	    this.inputStream = inputStream;
+	    this.len = len;
+	    this.headers = headers;	    
 	}
 
 	static Result from(final HttpURLConnection connection)
@@ -94,6 +108,57 @@ public class Req {
 			      connection.getContentLengthLong(),
 			      connection.getHeaderFields());
 	}
+	
+	static Result lazyFrom(final HttpURLConnection connection)
+	    throws IOException
+	{
+	    if(connection == null) return null;
+
+	    int responseCode = connection.getResponseCode();
+	    boolean ok = isOk(responseCode);
+	    final InputStream in;
+	    if(ok) {
+		in = new BufferedInputStream(connection.getInputStream());
+	    } else {
+		in = new BufferedInputStream(connection.getErrorStream());
+	    }
+	    //connection.disconnect();
+
+	    return new Result(responseCode, ok, in,
+			      connection.getContentLengthLong(),
+			      connection.getHeaderFields());
+	}
+    }
+
+    public static class Settings {
+	List<String> entries;
+	
+	public Settings() {
+	    entries = new ArrayList<>();
+	}
+
+	public Settings auth(final String auth, final String token) {
+	    if(auth == null) return null;
+	    if(token == null) return null;
+	    entries.add("Authorization");
+	    entries.add(Io.concat(auth, " ", token));
+	    return this;
+	}
+
+	public Settings basicAuth(final String token) {
+	    if(token == null) return null;
+	    entries.add("Authorization");
+	    entries.add(Io.concat("Basic ", new String(Base64.getEncoder().encode(token.getBytes(StandardCharsets.UTF_8)))));
+	    return this;
+	}
+
+	public Settings set(String key, String value) {
+	    if(key == null) return null;
+	    if(value == null) return null;
+	    entries.add(key);
+	    entries.add(value);
+	    return this;
+	}
     }
 
     public static class Builder {
@@ -105,6 +170,16 @@ public class Req {
 	Builder(final HttpURLConnection connection) {
 	    this.connection = connection;
 	    this.bytes = null;
+	}
+
+	Builder(final Settings settings, final HttpURLConnection connection) {	    
+	    this.connection = connection;
+	    this.bytes = null;
+	    for(int i=0;i<settings.entries.size();i+=2) {
+		final String key = settings.entries.get(i);
+		final String value = settings.entries.get(i+1);
+		connection.setRequestProperty(key, value);
+	    }
 	}
 
 	public Builder set(final String key, final String value) {
@@ -149,10 +224,8 @@ public class Req {
 	    return this;
 	}
 
-	public Result build()
-	    throws IOException
-	{
-	    if(connection == null) return null;
+	private boolean prepareBuild() throws IOException {
+	    if(connection == null) return false;
 	    if(bytes != null) {
 		if(fileName != null && attachmentName != null) {
 		    connection.setRequestProperty("Content-Type", FORM_DATA_CONTENT_TYPE);
@@ -174,15 +247,41 @@ public class Req {
 		    dos.close();
 		}
 	    }
+	    return true;
+	}
+
+	public Result lazyBuild() throws IOException {
+	    if(!prepareBuild()) {
+		return null;
+	    }
+	    return Result.lazyFrom(connection);	    
+	}
+
+	public Result build()
+	    throws IOException
+	{
+	    if(!prepareBuild()) {
+		return null;
+	    }
 	    return Result.from(connection);
 	}
     }
 
+    public static final Settings settings() {
+	return new Settings();
+    }
+
+    public static final Builder builder(final Settings settings, final String url, final String method)
+	throws IOException
+	{
+	    return new Builder(settings, basicConnection(url, method));
+	}
+
     public static final Builder builder(final String url, final String method)
 	throws IOException
-    {
-	return new Builder(basicConnection(url, method));
-    }
+	{
+	    return new Builder(basicConnection(url, method));
+	}
 
     public static final Result request(final String url, final String method)
 	throws IOException
@@ -190,10 +289,28 @@ public class Req {
 	return Result.from(basicConnection(url, method));
     }
 
+    public static final Result request(final Settings settings, final String url, final String method)
+	throws IOException
+    {
+	return new Builder(settings, basicConnection(url, method)).build();
+    }
+
+    public static final Result head(final Settings settings, final String url)
+	throws IOException
+	{
+	    return request(settings, url, "HEAD");
+	}
+
     public static final Result head(final String url)
 	throws IOException
     {
 	return Result.from(basicConnection(url, "HEAD"));
+    }
+
+    public static final Result get(final Settings settings, final String url)
+	throws IOException
+    {
+	return request(settings, url, "GET");
     }
 
     public static final Result get(final String url)
@@ -248,12 +365,12 @@ public class Req {
 	return 100 <= responseCode && responseCode <= 399;
     }
 
-    public static final String utf8(final byte[] data) {
+    public static final String stringUtf8(final byte[] data) {
 	if(data == null) return null;
 	return new String(data, StandardCharsets.UTF_8);
     }
 
-    public static final byte[] utf8(final String data) {
+    public static final byte[] bytesUtf8(final String data) {
 	if(data == null) return null;
 	return data.getBytes(StandardCharsets.UTF_8);
     }

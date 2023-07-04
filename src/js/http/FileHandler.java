@@ -3,8 +3,9 @@ package js.http;
 import static js.http.Util.*;
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.io.FileInputStream;
 
-class FileHandler implements HttpHandler {
+public class FileHandler implements HttpHandler {
     private final String path;
 
     public FileHandler(final String path) {
@@ -37,7 +38,7 @@ class FileHandler implements HttpHandler {
         MimeFile file = getFile(fileId);
         if(file!=null) {
             t.getResponseHeaders().set("Content-Type", file.getMime()+"; charset=utf-8");
-            return ok(file);
+            return new HttpResult(new FileInputStream(file), 200);
         }
 
 	return notFound();

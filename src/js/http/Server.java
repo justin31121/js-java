@@ -166,7 +166,7 @@ public class Server {
 			SSLContext c = SSLContext.getDefault();
 			SSLEngine engine = c.createSSLEngine();
 			params.setNeedClientAuth(false);
-			Params.setCipherSuites(engine.getEnabledCipherSuites());
+			//Params.setCipherSuites(engine.getEnabledCipherSuites());
 			params.setProtocols(engine.getEnabledProtocols());
 
 			SSLParameters defaultSSLParameters = c.getDefaultSSLParameters();

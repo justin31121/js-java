@@ -59,8 +59,8 @@ public class Util {
 	return new HttpResult("", 200);
     }
 
-    public static final HttpResult ok(final Object message) {
-	return new HttpResult(message, 200);
+    public static final HttpResult ok(final byte[] bytes) {
+	return new HttpResult(bytes, 200);
     }
 
     public static final HttpResult ok(final JSONObject json) {
@@ -73,7 +73,7 @@ public class Util {
 
     public static final HttpResult notFound(final String mess) {
 	return new HttpResult(mess, 404);
-    }
+    }   
 
     public static final HttpResult notFound() {
 	return new HttpResult("Not found", 404);
@@ -120,7 +120,8 @@ public class Util {
 
     public static final void respond(HttpExchange t, final HttpResult result) throws IOException {
 	if(result.isContent()) respond(t, result.getContent(), result.getCode());
-	else respond(t, result.getFile(), result.getCode());
+	else if(result.isFile()) respond(t, result.getFile(), result.getCode());
+	else respond(t, result.getBytes(), result.getCode());
     }
 
     public static final void respond(HttpExchange t, String message, int rCode) throws IOException {
@@ -132,6 +133,15 @@ public class Util {
         t.sendResponseHeaders(rCode, bytes.length);
         os.write(bytes);
         os.close();
+    }
+
+    public static void respond(HttpExchange t, byte[] bytes, int rCode) throws IOException {
+	System.out.println("SENDINGG BYTES");
+	OutputStream os = t.getResponseBody();
+	t.sendResponseHeaders(rCode, bytes.length);
+	os.write(bytes);
+	os.flush();
+	os.close();
     }
 
     public static final void respond(HttpExchange t, File file, int rCode) throws IOException {

@@ -100,7 +100,7 @@ public class Server {
 		    ex.printStackTrace();
 		    result = internalError();
 		}
-		respond(t, result);		
+		respond(t, result);
 	    }
 	};
     }
@@ -166,7 +166,7 @@ public class Server {
 			SSLContext c = SSLContext.getDefault();
 			SSLEngine engine = c.createSSLEngine();
 			params.setNeedClientAuth(false);
-			params.setCipherSuites(engine.getEnabledCipherSuites());
+			Params.setCipherSuites(engine.getEnabledCipherSuites());
 			params.setProtocols(engine.getEnabledProtocols());
 
 			SSLParameters defaultSSLParameters = c.getDefaultSSLParameters();

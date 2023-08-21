@@ -218,7 +218,6 @@ public class Io {
     }
 
     public static void writeFile(final String filePath, final String content) throws IOException {
-
 	String[] parts = filePath.split("/");
 	
 	StringBuilder builder = new StringBuilder();

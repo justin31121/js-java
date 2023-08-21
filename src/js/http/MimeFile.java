@@ -32,7 +32,7 @@ class MimeFile extends File {
             return "image/svg+xml";
         default:
             System.out.println("unreachable getMIME: "+type);
-            return null;
+            return "text/plain";
         }
     }
 

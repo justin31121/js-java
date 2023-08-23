@@ -61,9 +61,10 @@ public class Util {
 	return new HttpResult(200);
     }
 
+
     public static final HttpResult ok(final String message) {
 	return new HttpResult(message, 200);
-    }    
+    }
 
     public static final HttpResult ok(final JSONObject json) {
 	return new HttpResult(json.toString().replace("\"NULL\"", "null"), 200);
@@ -75,7 +76,7 @@ public class Util {
 
     public static final HttpResult notFound(final String mess) {
 	return new HttpResult(mess, 404);
-    }
+    }   
 
     public static final HttpResult notFound() {
 	return new HttpResult("Not found", 404);
@@ -121,6 +122,7 @@ public class Util {
     }
 
     public static final void respond(HttpExchange t, final HttpResult result) throws IOException {
+
 	OutputStream outputStream = t.getResponseBody();
 	int rCode = result.getCode();
 	

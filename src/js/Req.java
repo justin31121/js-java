@@ -121,8 +121,10 @@ public class Req {
 	    in.close();
 	    connection.disconnect();
 
-	    return new Result(responseCode, ok, out.toByteArray(),
-			      connection.getContentLengthLong(),
+	    byte[] bytes = out.toByteArray();
+
+	    return new Result(responseCode, ok, bytes,
+			      bytes.length,
 			      connection.getHeaderFields());
 	}
 	

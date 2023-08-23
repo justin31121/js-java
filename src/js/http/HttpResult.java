@@ -20,6 +20,7 @@ public class HttpResult {
 	this(string.getBytes(StandardCharsets.UTF_8), code);
     }
     
+
     public HttpResult(final byte[] bytes, final int code) {
 	this.inputStream = null;
 	this.bytes = bytes;

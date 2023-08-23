@@ -45,6 +45,23 @@ public class Req {
     private static final String FORM_DATA_BOUNDARY = "*****";
     private static final String FORM_DATA_CRLF = "\r\n";
 
+    // Disconnects connection to HttpURLConnection, after InputStream is closed
+    private static class Stream extends BufferedInputStream {
+
+	private final HttpURLConnection connection;
+
+	public Stream(InputStream inputStream, HttpURLConnection connection) {
+	    super(inputStream);
+	    this.connection = connection;
+	}
+
+	@Override
+	public void close() throws IOException {
+	    super.close();
+	    connection.disconnect();
+	}
+    }
+
     public static class Result {
 	public final int responseCode;
 	public final boolean ok;
@@ -118,9 +135,9 @@ public class Req {
 	    boolean ok = isOk(responseCode);
 	    final InputStream in;
 	    if(ok) {
-		in = new BufferedInputStream(connection.getInputStream());
+		in = new Stream(connection.getInputStream(), connection);
 	    } else {
-		in = new BufferedInputStream(connection.getErrorStream());
+		in = new Stream(connection.getErrorStream(), connection);
 	    }
 	    //connection.disconnect();
 

@@ -61,7 +61,6 @@ public class Util {
 	return new HttpResult(200);
     }
 
-
     public static final HttpResult ok(final String message) {
 	return new HttpResult(message, 200);
     }
@@ -142,7 +141,7 @@ public class Util {
 	    byte[] bytes = result.getBytes();
 	    
 	    t.sendResponseHeaders(rCode, bytes.length);
-	    outputStream.write(bytes);	    
+	    outputStream.write(bytes);
 	} else {
 	    
 	    t.sendResponseHeaders(rCode, -1);

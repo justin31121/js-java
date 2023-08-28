@@ -18,8 +18,7 @@ public class HttpResult {
 
     public HttpResult(final String string, final int code) {
 	this(string.getBytes(StandardCharsets.UTF_8), code);
-    }
-    
+    }    
 
     public HttpResult(final byte[] bytes, final int code) {
 	this.inputStream = null;

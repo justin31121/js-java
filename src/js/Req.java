@@ -411,7 +411,7 @@ public class Req {
 	if(url == null) return null;
 	if(method == null) return null;
 	final HttpURLConnection connection;
-	if(url.indexOf("https://") == 0) {
+	if(url.indexOf("https://") == 0) { 
 	    connection = (HttpsURLConnection) new URL(url).openConnection();
 	} else if(url.indexOf("http://") == 0) {
 	    connection = (HttpURLConnection) new URL(url).openConnection();

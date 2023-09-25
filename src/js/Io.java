@@ -1,17 +1,7 @@
 package js;
 
-import java.io.IOException;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.File;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ByteArrayInputStream;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -136,7 +126,8 @@ public class Io {
     }
 
     private static <T> T forEachLine(String path, Function<T> f, T t) throws IOException {
-	BufferedReader reader = new BufferedReader(new FileReader(path));
+	BufferedReader reader =
+	    new BufferedReader(new InputStreamReader(new FileInputStream(path), StandardCharsets.UTF_8));
 
 	String line;
 	while((line = reader.readLine())!=null) {
@@ -224,8 +215,8 @@ public class Io {
 	for(int i=0;i<parts.length-1;i++) builder.append(parts[i]).append("/");
 	new File(builder.toString()).mkdirs();
 	
-	final BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
-	writer.write(content);
+	final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filePath), StandardCharsets.UTF_8));
+	    writer.write(content);
 	writer.close();
     }
 

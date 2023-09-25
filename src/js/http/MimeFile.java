@@ -28,6 +28,14 @@ class MimeFile extends File {
             return "text/javascript";
         case ".css":
             return "text/css";
+	case ".png":
+	    return "image/png";
+	case ".jpeg":
+	case ".jpg":
+	case ".jpe":
+	    return "image/jpeg";
+	case "image/x-ixon":
+	    return "image/x-icon";
         case ".svg":
             return "image/svg+xml";
         default:

@@ -108,7 +108,7 @@ public class Util {
 	return uri.substring(p, uri.length());
     }
 
-    public static final String getRoute(final HttpExchange t, final String prefix) {	
+    public static final String getRoute(final HttpExchange t, final String prefix) {
 	final String uri = t.getRequestURI().toString();
 	if(uri.indexOf(prefix) != 0) return null;
 	int len = prefix.length();

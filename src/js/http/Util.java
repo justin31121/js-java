@@ -10,6 +10,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.concurrent.Callable;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.ArrayList;
 
 import org.json.JSONObject;
 
@@ -85,16 +87,27 @@ public class Util {
 	return new HttpResult("Internal Error", 500);
     }
 
-    public static final Map<String, String> getParameters(final HttpExchange t) throws HttpException {
+    public static final Map<String, List<String>> getParameters(final HttpExchange t) throws HttpException {
 	final String uri = t.getRequestURI().toString();
-	final Map<String, String> parameters = new HashMap<String, String>();
+	final Map<String, List<String>> parameters = new HashMap<>();
 	int p = uri.indexOf("?");
 	if(p != -1) {
 	    String[] pairs = uri.substring(p+1, uri.length()).split("&");
 	    for(int i=0;i<pairs.length;i++) {
 		String[] assignment = pairs[i].split("=");
 		if(assignment.length != 2) throw new HttpException("Malformed Parameters", 404);
-		parameters.put(assignment[0], assignment[1]);
+		String key = assignment[0];
+		String value = assignment[1];
+
+		List<String> values = parameters.get(key);
+		if(values == null) {
+		    values = new ArrayList<>();
+		    values.add(value);
+		    parameters.put(key, values);
+		} else {
+		    values.add(value);
+		}
+		
 	    }
 	}
 

@@ -30,11 +30,13 @@ class MimeFile extends File {
             return "text/css";
 	case ".png":
 	    return "image/png";
+	case ".ttf":
+	    return "font/ttf";
 	case ".jpeg":
 	case ".jpg":
 	case ".jpe":
 	    return "image/jpeg";
-	case "image/x-ixon":
+	case ".ico":
 	    return "image/x-icon";
         case ".svg":
             return "image/svg+xml";

@@ -27,6 +27,13 @@ public class Io {
 	System.exit(exitCode);
     }
 
+    public static void todo() {
+	throw new RuntimeException("TODO");
+    }
+
+    public static void todo(String message) {
+	throw new RuntimeException("TODO: "+message);
+    }
     
     public static void _assert(boolean condition, Object message) {
 	if(!condition) {
@@ -120,6 +127,8 @@ public class Io {
 	return blobs;
     }
 
+    
+
     //READ FILE
     private static interface Function<T> {
 	void operation(String line, T t);
@@ -135,7 +144,7 @@ public class Io {
 	}
 
 	return t;
-    }
+    }    
 
     private static <T> T forEachLine(File file, Function<T> f, T t) throws IOException {
 	return forEachLine(file.getAbsolutePath(), f, t);
@@ -151,7 +160,7 @@ public class Io {
 	return forEachLine(path, f, lines);
     }
 
-    public static String readFile(String path) throws IOException {
+    public static String _readFile(String path) throws IOException {
 	StringBuilder builder = new StringBuilder();
 
 	Function<StringBuilder> f = (line, acc) -> {
@@ -160,6 +169,21 @@ public class Io {
 	};
 
 	return forEachLine(path, f, builder).toString();
+    }
+
+    public static String readFile(String path) throws IOException {
+	BufferedReader reader =
+	    new BufferedReader(new InputStreamReader(new FileInputStream(path), StandardCharsets.UTF_8));
+
+        StringBuilder sb = new StringBuilder();
+	String line;
+	while((line = reader.readLine()) != null) {
+	    sb.append(line)
+		.append("\n");
+	}
+	reader.close();
+
+	return sb.toString();
     }
 
     public static String concat(Object ...os) {
@@ -174,6 +198,39 @@ public class Io {
 		.append(String.valueOf(os[i]));
 	}
 	return builder.toString();
+    }
+
+    public static void writeObject(OutputStream os, Object o) throws IOException {
+	ObjectOutputStream oos = new ObjectOutputStream(os);
+	oos.writeObject(o);
+	oos.close();
+    }
+    
+    public static void writeObject(String filePath, Object o) throws IOException {
+        writeObject(new FileOutputStream(filePath), o);
+    }
+
+    public static Object readObject(String filePath) throws IOException, ClassNotFoundException {
+	return readObject(new FileInputStream(filePath));
+    }
+
+    public static Object readObject(InputStream is) throws IOException, ClassNotFoundException {
+	ObjectInputStream ios = new ObjectInputStream(is);
+	Object o = ios.readObject();
+	ios.close();
+	return o;
+    }
+
+    public static <T extends OutputStream> T writeTo(InputStream is, T os)  throws IOException {
+
+	int n;
+	byte[] buffer = new byte[4096];
+	while((n = is.read(buffer, 0, buffer.length)) != -1) {
+	    os.write(buffer, 0, n);
+	}
+	os.flush();
+
+	return os;
     }
 
     public static byte[] toBytes(InputStream is, boolean close) throws IOException {

@@ -624,6 +624,11 @@ public class Io {
 	    sb.append("<item>");
 	    
 	    for(Field field : fields) {
+
+		String name = field.getName();
+		if(name.equals("serialVersionUID") && field.getModifiers() == 25) {
+		    continue;
+		}	    
 		
 		Object fieldObject;
 		try {
@@ -632,8 +637,6 @@ public class Io {
 		    e.printStackTrace();
 		    continue;
 		}
-
-		String name = field.getName();
 
 		sb.append("<")
 		    .append(name)
@@ -710,6 +713,11 @@ public class Io {
 	    int length = sb.length();
 	    
 	    for(Field field : fields) {
+
+		String name = field.getName();
+		if(name.equals("serialVersionUID") && field.getModifiers() == 25) {
+		    continue;
+		}
 		
 	        Object fieldObject;
 		try {

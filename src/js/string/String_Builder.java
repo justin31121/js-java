@@ -1,6 +1,7 @@
 package js.string;
 
 import java.util.stream.*;
+import static js.Std.*;
 
 // https://developer.classpath.org/doc/java/lang/StringBuilder-source.html
 
@@ -82,6 +83,12 @@ public class String_Builder implements CharSequence {
 	return append(String.valueOf(object));
     }
 
+    public String_Builder append(Object object,
+				 Serializer.Function f) {
+	serialize(object, this, f);
+	return this;
+    }
+
     public String_Builder(int cap) {
 	data = new char[cap];
 	len = 0;
@@ -96,4 +103,9 @@ public class String_Builder implements CharSequence {
 	return new String(data, 0, len);
     }
 
+    public String toStringFlush() {
+	String result = toString();
+	setLength(0);
+	return result;
+    }
 }

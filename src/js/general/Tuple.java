@@ -9,5 +9,8 @@ public class Tuple<F, S> {
 	this.fst = fst;
 	this.snd = snd;
     }
-    
+
+    public static <F, S> Tuple<F, S> from(F fst, S snd) {
+        return new Tuple<>(fst, snd);
+    }
 }
